@@ -1,0 +1,22 @@
+import re
+
+# Patrón para número de celular colombiano
+patron_celular = r'^3\d{9}$'
+
+# Patrón para correo electrónico
+patron_correo = r'^[a-zA-Z0-9._%+-]{1,}@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+numero_celular = '3123456789'  # Ejemplo de número a validar
+correo_electronico = 'n@gmail.com'  # Ejemplo de correo a validar
+
+# Validación del número de celular
+if re.match(patron_celular, numero_celular):
+    print("El número de celular es válido.")
+else:
+    print("El número de celular no es válido.")
+
+# Validación del correo electrónico
+if re.match(patron_correo, correo_electronico):
+    print("El correo electrónico es válido.")
+else:
+    print("El correo electrónico no es válido.")
