@@ -1,3 +1,35 @@
+
+import re
+
+# Patrón regex para validar correo electrónico
+patron_correo = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+
+def validar_correo(correo):
+    if pd.isna(correo):
+        return False  # Considera los valores NaN como correos no válidos
+    return re.match(patron_correo, correo) is not None
+df['correo_valido'] = df['columna_correo'].apply(validar_correo)
+
+
+################################################################
+def validar_celular(celular):
+    # Asume formato colombiano sin código de país: empieza con 3 y tiene 10 dígitos en total
+    patron_celular = r'^3\d{9}$'
+    if pd.isna(celular):
+        return False  # Considera los valores NaN como números no válidos
+    return re.match(patron_celular, celular) is not None
+df['celular_valido'] = df['columna_celular'].apply(validar_celular)
+
+
+
+
+
+
+
+
+
+
+
 import re
 
 # Patrón para número de celular colombiano
