@@ -1,0 +1,49 @@
+Uso de pickle para Indexar y Buscar Rutas de Archivos
+Este script demuestra cómo crear un índice de rutas de archivos basado en radicados, serializar este índice con pickle para su almacenamiento, y luego deserializarlo para realizar búsquedas rápidas. Es especialmente útil en aplicaciones con una gran cantidad de datos que no cambian frecuentemente.
+
+### Paso 1: Crear el Índice
+Primero, necesitamos construir un diccionario que actúe como índice. Este diccionario mapeará cada radicado a su ruta correspondiente en el sistema de archivos.
+
+rutas_archivos = [
+    "ruta/2023-01-01/12345/nombre1.pdf",
+    "ruta/2023-01-02/12346/nombre2.pdf",
+    "ruta/2023-01-03/12347/nombre3.pdf",
+    # Aquí irían los 50 millones de registros...
+]
+
+indice_radicados = {}
+for ruta in rutas_archivos:
+    partes = ruta.split('/')
+    radicado = partes[2]  # Asumiendo la estructura de ruta es consistente y el radicado siempre está en esta posición
+    indice_radicados[radicado] = ruta}
+
+### Paso 2: Serializar el Índice con pickle
+Una vez que tenemos el índice, lo serializamos y guardamos en el disco. Esto nos permite cargarlo rápidamente en memoria cuando sea necesario, sin tener que reconstruir el índice desde cero.
+
+
+import pickle
+
+with open('indice_radicados.pickle', 'wb') as archivo:
+    pickle.dump(indice_radicados, archivo)
+
+### Paso 3: Deserializar el Índice
+Cuando la aplicación se inicie o necesite realizar una búsqueda, el primer paso será cargar el índice en memoria deserializándolo desde el archivo pickle.
+
+with open('indice_radicados.pickle', 'rb') as archivo:
+    indice_radicados = pickle.load(archivo)
+### Paso 4: Búsqueda de Rutas por Radicado
+Con el índice cargado, podemos realizar búsquedas eficientes proporcionando un radicado y obteniendo la ruta correspondiente en caso de que exista.
+
+
+def buscar_radicado(indice, radicado):
+    return indice.get(radicado, "Radicado no encontrado.")
+
+### Ejemplo de uso
+radicado_buscado = '12345'
+ruta_buscada = buscar_radicado(indice_radicados, radicado_buscado)
+print(ruta_buscada)
+
+### Consideraciones Finales
+Actualización del Índice: Si los datos subyacentes cambian, será necesario regenerar y redistribuir el archivo pickle. Esto podría formar parte de un proceso de actualización regular de la aplicación.
+Seguridad: Ten cuidado al cargar archivos pickle de fuentes no confiables, ya que pickle puede ejecutar código arbitrario durante la deserialización. Asegúrate de que los archivos pickle que tu aplicación carga sean generados por una fuente de confianza.
+Este script proporciona una base sólida para trabajar con grandes volúmenes de datos de manera eficiente en tu aplicación, reduciendo significativamente el tiempo necesario para búsquedas repetidas.
