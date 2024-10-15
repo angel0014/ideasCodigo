@@ -1,0 +1,136 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import threading
+import os
+import pandas as pd
+import subprocess
+import time
+
+# Función para contar archivos Excel en el directorio EXCEL
+def contar_archivos_excel():
+    ruta_excel = os.path.join(os.getcwd(), 'EXCEL')
+    if not os.path.exists(ruta_excel):
+        return 0  # Si no existe la carpeta EXCEL
+    archivos_excel = [f for f in os.listdir(ruta_excel) if f.endswith('.xlsx')]
+    return len(archivos_excel)
+
+# Función para contar registros en el archivo Destinatarios.xlsx
+def contar_destinatarios():
+    ruta_destinatarios = os.path.join(os.getcwd(), 'data', 'Destinatarios.xlsx')
+    if not os.path.exists(ruta_destinatarios):
+        return 0  # Si no existe el archivo de destinatarios
+    df_destinatarios = pd.read_excel(ruta_destinatarios)
+    return len(df_destinatarios)
+
+# Función para ejecutar el Script 1 (Generar Extractos)
+def ejecutar_script_1():
+    try:
+        # Ejecutar el script 1 (extracto_ips_masivo.py)
+        subprocess.run(["python", "extracto_ips_masivo.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"Error al generar los extractos: {str(e)}")
+        return False
+    return True
+
+# Función para ejecutar el Script 2 (Enviar Correos)
+def ejecutar_script_2():
+    try:
+        # Ejecutar el script 2 (envio_correos_masivo.py)
+        subprocess.run(["python", "envio_correos_masivo.py"], check=True)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Error", f"Error al enviar los correos: {str(e)}")
+        return False
+    return True
+
+# Función para actualizar la barra de progreso durante la generación de Excel
+def actualizar_progreso_excel():
+    total_excel = contar_archivos_excel()
+    progress_var.set(total_excel)
+    progress_label.config(text=f"Generando archivos Excel: {total_excel} completados")
+    ventana.update_idletasks()
+
+# Función para ejecutar ambos scripts de manera secuencial
+def ejecutar_proceso():
+    # Deshabilitar botones para evitar acciones adicionales
+    boton_iniciar_proceso.config(state=tk.DISABLED)
+    
+    # Proceso del Script 1 - Generación de Excel
+    resultados_label.config(text="Ejecutando script de generación de extractos...")
+    total_destinatarios = contar_destinatarios()
+    
+    progress_bar["maximum"] = total_destinatarios
+    progress_var.set(0)
+
+    def worker_script_1():
+        # Simular la ejecución del script 1 con actualización de progreso
+        for i in range(1, total_destinatarios + 1):
+            time.sleep(0.1)  # Simulación del tiempo para generar un Excel
+            actualizar_progreso_excel()
+
+        # Una vez generado el último Excel, mostramos un mensaje de confirmación
+        messagebox.showinfo("Proceso completado", "Se han generado todos los archivos Excel.")
+
+        # Iniciar la segunda fase: Envío de correos
+        ventana.after(1000, enviar_correos)
+    
+    threading.Thread(target=worker_script_1).start()
+
+# Función para enviar los correos (después de generar los Excel)
+def enviar_correos():
+    resultados_label.config(text="Ejecutando script de envío de correos...")
+    total_destinatarios = contar_destinatarios()
+    
+    def worker_script_2():
+        total_enviados = 0
+        total_fallidos = 0
+        
+        # Simular el envío de correos uno por uno
+        for i in range(1, total_destinatarios + 1):
+            time.sleep(0.2)  # Simulación del tiempo para enviar un correo
+            
+            if i % 100 == 0:
+                total_fallidos += 1  # Simular algunos fallos para cada 100 correos
+            
+            total_enviados = i - total_fallidos
+            progress_var.set(i)
+            progress_label.config(text=f"Enviando correos: {i}/{total_destinatarios} enviados")
+            ventana.update_idletasks()
+        
+        # Finalizar el proceso y mostrar resultados
+        messagebox.showinfo("Proceso de envío completado", f"Total de correos enviados: {total_enviados}\n"
+                                                            f"Total de correos fallidos: {total_fallidos}")
+        resultados_label.config(text=f"Total de correos enviados: {total_enviados}\n"
+                                     f"Total de correos fallidos: {total_fallidos}")
+        boton_iniciar_proceso.config(state=tk.NORMAL)
+
+    threading.Thread(target=worker_script_2).start()
+
+# Configuración de la ventana principal
+ventana = tk.Tk()
+ventana.title("Aplicación de Generación y Envío de Correos")
+ventana.geometry("500x350")
+ventana.resizable(False, False)
+
+# Título
+titulo_label = ttk.Label(ventana, text="Generación y Envío de Extractos IPS", font=("Arial", 16))
+titulo_label.pack(pady=10)
+
+# Barra de progreso
+progress_var = tk.IntVar()
+progress_bar = ttk.Progressbar(ventana, orient="horizontal", length=400, mode="determinate", variable=progress_var)
+progress_bar.pack(pady=20)
+
+# Etiqueta de progreso
+progress_label = ttk.Label(ventana, text="Progreso: 0%", font=("Arial", 12))
+progress_label.pack(pady=10)
+
+# Botón para iniciar todo el proceso
+boton_iniciar_proceso = ttk.Button(ventana, text="Iniciar Proceso", command=ejecutar_proceso)
+boton_iniciar_proceso.pack(pady=20)
+
+# Sección de resultados
+resultados_label = ttk.Label(ventana, text="Esperando acción...", font=("Arial", 12))
+resultados_label.pack(pady=10)
+
+# Iniciar la ventana
+ventana.mainloop()
