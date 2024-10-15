@@ -1,0 +1,64 @@
+import os
+import win32com.client as win32
+import pandas as pd
+
+# Ruta de los archivos
+ruta_destinatarios = 'Destinatarios.xlsx'  # Archivo de Excel con los destinatarios
+ruta_pdfs_fijos = ['documento_fijo1.pdf', 'documento_fijo2.pdf']  # Lista de PDFs fijos
+ruta_excell_variables = 'Excels_por_NIT/'  # Carpeta donde están los Excels según NIT
+
+# Configurar Outlook con cuenta genérica
+outlook = win32.Dispatch("Outlook.Application")
+namespace = outlook.GetNamespace("MAPI")
+cuenta_generica = None
+
+# Buscar cuenta genérica por su nombre
+for cuenta in namespace.Folders:
+    if "nombre_cuenta_generica" in cuenta.Name:  # Reemplaza con el nombre de la cuenta
+        cuenta_generica = cuenta
+        break
+
+if cuenta_generica is None:
+    raise Exception("No se encontró la cuenta genérica.")
+
+# Leer archivo de destinatarios
+df_destinatarios = pd.read_excel(ruta_destinatarios)
+
+# Función para enviar correos
+def enviar_correo(destinatario, nit, adjuntos_excel, adjuntos_pdf):
+    try:
+        mail = outlook.CreateItem(0)  # 0 es para crear un correo
+        mail.Subject = f"Información Importante para {destinatario}"
+        mail.Body = f"Estimado/a {destinatario},\nAdjuntamos la documentación solicitada."
+        mail.To = destinatario
+        mail._oleobj_.Invoke(*(64209, 0, 8, 0, cuenta_generica))  # Establece la cuenta genérica como remitente
+        
+        # Adjuntar PDFs fijos
+        for pdf in adjuntos_pdf:
+            if os.path.exists(pdf):
+                mail.Attachments.Add(os.path.abspath(pdf))
+            else:
+                print(f"Archivo PDF no encontrado: {pdf}")
+        
+        # Adjuntar Excel variable por NIT
+        archivo_excel = os.path.join(adjuntos_excel, f"{nit}.xlsx")
+        if os.path.exists(archivo_excel):
+            mail.Attachments.Add(os.path.abspath(archivo_excel))
+        else:
+            print(f"Archivo Excel no encontrado para NIT {nit}.")
+        
+        # Enviar correo
+        mail.Send()
+        print(f"Correo enviado a {destinatario}.")
+
+    except Exception as e:
+        print(f"Error al enviar correo a {destinatario}: {str(e)}")
+
+# Enviar correos a cada destinatario en la lista
+for index, row in df_destinatarios.iterrows():
+    destinatario = row['Correo']
+    nit = row['NIT']
+    enviar_correo(destinatario, nit, ruta_excell_variables, ruta_pdfs_fijos)
+
+print("Todos los correos fueron enviados.")
+
